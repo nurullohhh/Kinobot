@@ -13,6 +13,83 @@ ADMIN_IDS = [1936905280, 6566152502]
 def is_admin(user_id):
     return user_id in ADMIN_IDS
 DATA_FILE = 'kino_data.json'
+if 'adminlar' not in data:
+    data['adminlar'] = []
+'adminlar': data.get('adminlar', [])
+def is_admin(user_id):
+    return user_id in data.get('adminlar', [])
+@bot.message_handler(func=lambda message: message.text == "👥 Foydalanuvchi menyusi" and is_admin(message.from_user.id))
+def user_menu(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        "➕ Admin qo'shish",
+        "➖ Admin o'chirish",
+        "📋 Adminlar ro'yxati",
+        "🔙 Orqaga"
+    )
+    bot.send_message(message.chat.id, "👤 <b>Adminlar menyusi</b>\nKerakli amalni tanlang:", reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text == "➕ Admin qo'shish" and is_admin(message.from_user.id))
+def add_admin(message):
+    msg = bot.send_message(message.chat.id, "🆔 Yangi adminning Telegram ID raqamini yuboring:")
+    bot.register_next_step_handler(msg, process_add_admin)
+
+def process_add_admin(message):
+    try:
+        new_admin = int(message.text.strip())
+        if new_admin in data["adminlar"]:
+            bot.send_message(message.chat.id, "❌ Bu foydalanuvchi allaqachon admin.")
+        else:
+            data["adminlar"].append(new_admin)
+            save_data(data)
+            bot.send_message(message.chat.id, f"✅ Admin qo‘shildi: <code>{new_admin}</code>")
+    except:
+        bot.send_message(message.chat.id, "❌ Noto‘g‘ri ID kiritildi.")
+    user_menu(message)
+
+
+@bot.message_handler(func=lambda message: message.text == "➖ Admin o'chirish" and is_admin(message.from_user.id))
+def remove_admin(message):
+    if len(data["adminlar"]) <= 1:
+        bot.send_message(message.chat.id, "❌ Kamida 1 ta admin qolishi kerak.")
+        return user_menu(message)
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for admin_id in data["adminlar"]:
+        markup.add(str(admin_id))
+    markup.add("🔙 Orqaga")
+    msg = bot.send_message(message.chat.id, "❌ O‘chirish uchun admin ID sini tanlang:", reply_markup=markup)
+    bot.register_next_step_handler(msg, process_remove_admin)
+
+def process_remove_admin(message):
+    if message.text == "🔙 Orqaga":
+        return user_menu(message)
+    try:
+        admin_id = int(message.text.strip())
+        if admin_id in data["adminlar"]:
+            data["adminlar"].remove(admin_id)
+            save_data(data)
+            bot.send_message(message.chat.id, f"✅ Admin o‘chirildi: <code>{admin_id}</code>")
+        else:
+            bot.send_message(message.chat.id, "❌ Bunday admin mavjud emas.")
+    except:
+        bot.send_message(message.chat.id, "❌ Noto‘g‘ri ID.")
+    user_menu(message)
+
+@bot.message_handler(func=lambda message: message.text == "📋 Adminlar ro'yxati" and is_admin(message.from_user.id))
+def list_admins(message):
+    adminlar = data.get("adminlar", [])
+    if not adminlar:
+        bot.send_message(message.chat.id, "❌ Hech qanday admin mavjud emas.")
+    else:
+        admin_text = "\n".join([f"• <code>{admin_id}</code>" for admin_id in adminlar])
+        bot.send_message(message.chat.id, f"👤 <b>Adminlar ro‘yxati:</b>\n{admin_text}")
+    user_menu(message)
+
+@bot.message_handler(func=lambda message: message.text == "🔙 Orqaga" and is_admin(message.from_user.id))
+def back_to_admin_panel(message):
+    admin_panel(message)
+
 
 # Botni ishga tushirish (katta fayllar uchun maxsus sozlamalar)
 bot = telebot.TeleBot(TOKEN, parse_mode='HTML', threaded=True, num_threads=10)
