@@ -533,6 +533,30 @@ def show_movies(message):
         "🎬 <b>Kino kodini tanlang:</b>",
         reply_markup=markup
     )
+# ... bu yerda kino o'chirish, ro'yxat ko'rsatish va boshqa kodlar tugaydi ...
+
+# 🎬 Foydalanuvchi kino tanlaganda
+@bot.message_handler(func=lambda message: message.text in kino_dict)
+def send_selected_movie(message):
+    code = message.text
+    movie = kino_dict.get(code)
+    
+    if not movie:
+        bot.send_message(message.chat.id, "❌ Kino topilmadi.")
+        return
+
+    if movie["tur"] == "link":
+        bot.send_message(message.chat.id, f"🎬 {movie['nomi']}\n🔗 {movie['havola']}")
+    elif movie["tur"] == "video":
+        bot.send_video(
+            message.chat.id,
+            movie["file_id"],
+            caption=f"🎬 {movie['nomi']}"
+        )
+    else:
+        bot.send_message(message.chat.id, "❌ Noma'lum kino turi.")
+
+# 🟢 Botni ishga tushirish
 if __name__ == "__main__":
     print("🤖 Bot ishga tushdi...")
     bot.infinity_polling(timeout=60, long_polling_timeout=60)
