@@ -161,7 +161,7 @@ def check_subscription(user_id):
 
 # 👨‍💻 Admin tekshiruvi
 def is_admin(user_id):
-    return user_id == ADMIN_IDS
+    return user_id in ADMIN_IDS
 
 # 🚪 /start buyrug'i
 @bot.message_handler(commands=['start'])
@@ -533,5 +533,6 @@ def show_movies(message):
         "🎬 <b>Kino kodini tanlang:</b>",
         reply_markup=markup
     )
-
-# Kino tanlanganda (optimallashtirilgan versiya)
+if __name__ == "__main__":
+    print("🤖 Bot ishga tushdi...")
+    bot.infinity_polling(timeout=60, long_polling_timeout=60)
