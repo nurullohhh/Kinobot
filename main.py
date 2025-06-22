@@ -9,7 +9,7 @@ keep_alive()
 
 # 🔑 Sozlamalar
 TOKEN = '7226611774:AAEf8Wa1_gB08uR8eroGm8rkOkZQIl49Eng'
-ADMIN_IDS = [1936905280, 123456789]
+ADMIN_IDS = [1936905280, 6566152502]
 def is_admin(user_id):
     return user_id in ADMIN_IDS
 DATA_FILE = 'kino_data.json'
