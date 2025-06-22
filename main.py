@@ -10,86 +10,7 @@ keep_alive()
 # 🔑 Sozlamalar
 TOKEN = '7226611774:AAEf8Wa1_gB08uR8eroGm8rkOkZQIl49Eng'
 ADMIN_IDS = [1936905280, 6566152502]
-def is_admin(user_id):
-    return user_id in ADMIN_IDS
 DATA_FILE = 'kino_data.json'
-if 'adminlar' not in data:
-    data['adminlar'] = []
-'adminlar': data.get('adminlar', [])
-def is_admin(user_id):
-    return user_id in data.get('adminlar', [])
-@bot.message_handler(func=lambda message: message.text == "👥 Foydalanuvchi menyusi" and is_admin(message.from_user.id))
-def user_menu(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(
-        "➕ Admin qo'shish",
-        "➖ Admin o'chirish",
-        "📋 Adminlar ro'yxati",
-        "🔙 Orqaga"
-    )
-    bot.send_message(message.chat.id, "👤 <b>Adminlar menyusi</b>\nKerakli amalni tanlang:", reply_markup=markup)
-
-@bot.message_handler(func=lambda message: message.text == "➕ Admin qo'shish" and is_admin(message.from_user.id))
-def add_admin(message):
-    msg = bot.send_message(message.chat.id, "🆔 Yangi adminning Telegram ID raqamini yuboring:")
-    bot.register_next_step_handler(msg, process_add_admin)
-
-def process_add_admin(message):
-    try:
-        new_admin = int(message.text.strip())
-        if new_admin in data["adminlar"]:
-            bot.send_message(message.chat.id, "❌ Bu foydalanuvchi allaqachon admin.")
-        else:
-            data["adminlar"].append(new_admin)
-            save_data(data)
-            bot.send_message(message.chat.id, f"✅ Admin qo‘shildi: <code>{new_admin}</code>")
-    except:
-        bot.send_message(message.chat.id, "❌ Noto‘g‘ri ID kiritildi.")
-    user_menu(message)
-
-
-@bot.message_handler(func=lambda message: message.text == "➖ Admin o'chirish" and is_admin(message.from_user.id))
-def remove_admin(message):
-    if len(data["adminlar"]) <= 1:
-        bot.send_message(message.chat.id, "❌ Kamida 1 ta admin qolishi kerak.")
-        return user_menu(message)
-
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    for admin_id in data["adminlar"]:
-        markup.add(str(admin_id))
-    markup.add("🔙 Orqaga")
-    msg = bot.send_message(message.chat.id, "❌ O‘chirish uchun admin ID sini tanlang:", reply_markup=markup)
-    bot.register_next_step_handler(msg, process_remove_admin)
-
-def process_remove_admin(message):
-    if message.text == "🔙 Orqaga":
-        return user_menu(message)
-    try:
-        admin_id = int(message.text.strip())
-        if admin_id in data["adminlar"]:
-            data["adminlar"].remove(admin_id)
-            save_data(data)
-            bot.send_message(message.chat.id, f"✅ Admin o‘chirildi: <code>{admin_id}</code>")
-        else:
-            bot.send_message(message.chat.id, "❌ Bunday admin mavjud emas.")
-    except:
-        bot.send_message(message.chat.id, "❌ Noto‘g‘ri ID.")
-    user_menu(message)
-
-@bot.message_handler(func=lambda message: message.text == "📋 Adminlar ro'yxati" and is_admin(message.from_user.id))
-def list_admins(message):
-    adminlar = data.get("adminlar", [])
-    if not adminlar:
-        bot.send_message(message.chat.id, "❌ Hech qanday admin mavjud emas.")
-    else:
-        admin_text = "\n".join([f"• <code>{admin_id}</code>" for admin_id in adminlar])
-        bot.send_message(message.chat.id, f"👤 <b>Adminlar ro‘yxati:</b>\n{admin_text}")
-    user_menu(message)
-
-@bot.message_handler(func=lambda message: message.text == "🔙 Orqaga" and is_admin(message.from_user.id))
-def back_to_admin_panel(message):
-    admin_panel(message)
-
 
 # Botni ishga tushirish (katta fayllar uchun maxsus sozlamalar)
 bot = telebot.TeleBot(TOKEN, parse_mode='HTML', threaded=True, num_threads=10)
@@ -113,6 +34,8 @@ def load_data():
                         'oylik_foydalanuvchilar': {},
                         'aktiv_foydalanuvchilar': {}
                     }
+                if 'adminlar' not in data:
+                    data['adminlar'] = []
                 # Set ni listga aylantirish
                 if isinstance(data['statistika']['umumiy_foydalanuvchilar'], list):
                     data['statistika']['umumiy_foydalanuvchilar'] = set(data['statistika']['umumiy_foydalanuvchilar'])
@@ -131,12 +54,12 @@ def load_data():
                 'umumiy_foydalanuvchilar': set(),
                 'oylik_foydalanuvchilar': {},
                 'aktiv_foydalanuvchilar': {}
-            }}
+            }, "adminlar": []}
     return {"kinolar": {}, "kanal": [], "statistika": {
         'umumiy_foydalanuvchilar': set(),
         'oylik_foydalanuvchilar': {},
         'aktiv_foydalanuvchilar': {}
-    }}
+    }, "adminlar": []}
 
 # 📂 Ma'lumotlarni saqlash
 def save_data(data):
@@ -144,6 +67,7 @@ def save_data(data):
     data_to_save = {
         'kinolar': data['kinolar'],
         'kanal': data['kanal'],
+        'adminlar': data['adminlar'],
         'statistika': {
             'umumiy_foydalanuvchilar': list(data['statistika']['umumiy_foydalanuvchilar']),
             'oylik_foydalanuvchilar': {},
@@ -167,6 +91,10 @@ data = load_data()
 kino_dict = data["kinolar"]
 CHANNELS = data["kanal"]
 statistika = data["statistika"]
+
+# 👨‍💻 Admin tekshiruvi
+def is_admin(user_id):
+    return user_id in ADMIN_IDS or user_id in data.get('adminlar', [])
 
 # 📈 Statistika yangilash
 def update_statistics(user_id):
@@ -236,25 +164,6 @@ def check_subscription(user_id):
             continue
     return True
 
-# 👨‍💻 Admin tekshiruvi
-def is_admin(user_id):
-    return user_id in ADMIN_IDS
-
-# 🚪 /start buyrug'i
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.from_user.id
-    update_statistics(user_id)  # Statistika yangilash
-    
-    if not check_subscription(user_id):
-        show_subscription_request(message)
-        return
-    
-    if is_admin(user_id):
-        admin_panel(message)
-    else:
-        show_movies(message)
-
 def show_subscription_request(message):
     markup = types.InlineKeyboardMarkup()
     for channel in CHANNELS:
@@ -292,6 +201,28 @@ def check_sub_callback(call):
         bot.answer_callback_query(call.id, "✅ Obuna tasdiqlandi!")
     else:
         bot.answer_callback_query(call.id, "❌ Hali obuna bo'lmagansiz!", show_alert=True)
+
+# 🚪 /start buyrug'i
+@bot.message_handler(commands=['start'])
+def start(message):
+    user_id = message.from_user.id
+    update_statistics(user_id)  # Statistika yangilash
+    
+    if not check_subscription(user_id):
+        show_subscription_request(message)
+        return
+    
+    if is_admin(user_id):
+        admin_panel(message)
+    else:
+        show_movies(message)
+
+def show_movies(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("🔍 Kino qidirish", "📋 Barcha kinolar")
+    if is_admin(message.from_user.id):
+        markup.add("👨‍💻 Admin paneli")
+    bot.send_message(message.chat.id, "🎬 <b>Kino kutubxonasi</b>\nKerakli bo'limni tanlang:", reply_markup=markup)
 
 # � Admin paneli
 def admin_panel(message):
@@ -333,56 +264,55 @@ def manage_channels(message):
 
 # ➕ Kanal qo'shish
 @bot.message_handler(func=lambda message: message.text == "➕ Kanal qo'shish" and is_admin(message.from_user.id))
+def ask_for_channel(message):
+    msg = bot.send_message(
+        message.chat.id, 
+        "📢 Kanal linkini yoki username'ini yuboring:\n\nMasalan: @meningkanalim yoki https://t.me/meningkanalim",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
+    bot.register_next_step_handler(msg, process_add_channel)
+
 def process_add_channel(message):
     global CHANNELS, data
     new_channel = message.text.strip()
 
-    # t.me havolasini @username formatiga aylantiramiz
+    # Agar t.me havola bo'lsa, uni @username formatiga aylantiramiz
     if new_channel.startswith("https://t.me/"):
         new_channel = '@' + new_channel.split('/')[-1]
-    
-    # @ belgisi bilan boshlanishi kerak
+
     if not new_channel.startswith('@'):
         bot.send_message(message.chat.id, "❌ Iltimos, kanal username yoki linkini to'g'ri yuboring!")
-        manage_channels(message)
-        return
+        return manage_channels(message)
 
     new_channel = new_channel.lower()
 
     if new_channel in CHANNELS:
         bot.send_message(message.chat.id, "❌ Bu kanal allaqachon qo'shilgan!")
-        manage_channels(message)
-        return
-    
+        return manage_channels(message)
+
     try:
-        # Kanal mavjudligini tekshirish
         chat = bot.get_chat(new_channel)
-        
-        # Bot kanalda adminligini tekshirish
         bot_member = bot.get_chat_member(chat.id, bot.get_me().id)
         if bot_member.status not in ['administrator', 'creator']:
             raise Exception("Bot kanalda admin emas")
 
-        # Qo‘shamiz
         CHANNELS.append(new_channel)
         data["kanal"] = CHANNELS
         save_data(data)
-        
+
         bot.send_message(
             message.chat.id, 
-            f"✅ Kanal muvaffaqiyatli qo'shildi!\n<b>Kanal:</b> {new_channel}\n<b>Nomi:</b> {chat.title}"
+            f"✅ Kanal qo'shildi!\n<b>Kanal:</b> {new_channel}\n<b>Nomi:</b> {chat.title}"
         )
     except Exception as e:
         bot.send_message(
-            message.chat.id, 
+            message.chat.id,
             f"❌ Xato: {str(e)}\n\nKanal topilmadi yoki bot admin emas. Iltimos, tekshirib qayta urinib ko'ring."
         )
-    
-    manage_channels(message)
-        
-        
-# ➖ Kanal o'chirish
 
+    manage_channels(message)
+
+# ➖ Kanal o'chirish
 @bot.message_handler(func=lambda message: message.text == "➖ Kanal o'chirish" and is_admin(message.from_user.id))
 def remove_channel(message):
     if not CHANNELS:
@@ -453,6 +383,74 @@ def list_channels(message):
 def back_to_admin_panel(message):
     admin_panel(message)
 
+# 👥 Foydalanuvchi menyusi
+@bot.message_handler(func=lambda message: message.text == "👥 Foydalanuvchi menyusi" and is_admin(message.from_user.id))
+def user_menu(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        "➕ Admin qo'shish",
+        "➖ Admin o'chirish",
+        "📋 Adminlar ro'yxati",
+        "🔙 Orqaga"
+    )
+    bot.send_message(message.chat.id, "👤 <b>Adminlar menyusi</b>\nKerakli amalni tanlang:", reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text == "➕ Admin qo'shish" and is_admin(message.from_user.id))
+def add_admin(message):
+    msg = bot.send_message(message.chat.id, "🆔 Yangi adminning Telegram ID raqamini yuboring:")
+    bot.register_next_step_handler(msg, process_add_admin)
+
+def process_add_admin(message):
+    try:
+        new_admin = int(message.text.strip())
+        if new_admin in data["adminlar"]:
+            bot.send_message(message.chat.id, "❌ Bu foydalanuvchi allaqachon admin.")
+        else:
+            data["adminlar"].append(new_admin)
+            save_data(data)
+            bot.send_message(message.chat.id, f"✅ Admin qo'shildi: <code>{new_admin}</code>")
+    except:
+        bot.send_message(message.chat.id, "❌ Noto'g'ri ID kiritildi.")
+    user_menu(message)
+
+@bot.message_handler(func=lambda message: message.text == "➖ Admin o'chirish" and is_admin(message.from_user.id))
+def remove_admin(message):
+    if len(data["adminlar"]) <= 1:
+        bot.send_message(message.chat.id, "❌ Kamida 1 ta admin qolishi kerak.")
+        return user_menu(message)
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for admin_id in data["adminlar"]:
+        markup.add(str(admin_id))
+    markup.add("🔙 Orqaga")
+    msg = bot.send_message(message.chat.id, "❌ O'chirish uchun admin ID sini tanlang:", reply_markup=markup)
+    bot.register_next_step_handler(msg, process_remove_admin)
+
+def process_remove_admin(message):
+    if message.text == "🔙 Orqaga":
+        return user_menu(message)
+    try:
+        admin_id = int(message.text.strip())
+        if admin_id in data["adminlar"]:
+            data["adminlar"].remove(admin_id)
+            save_data(data)
+            bot.send_message(message.chat.id, f"✅ Admin o'chirildi: <code>{admin_id}</code>")
+        else:
+            bot.send_message(message.chat.id, "❌ Bunday admin mavjud emas.")
+    except:
+        bot.send_message(message.chat.id, "❌ Noto'g'ri ID.")
+    user_menu(message)
+
+@bot.message_handler(func=lambda message: message.text == "📋 Adminlar ro'yxati" and is_admin(message.from_user.id))
+def list_admins(message):
+    adminlar = data.get("adminlar", [])
+    if not adminlar:
+        bot.send_message(message.chat.id, "❌ Hech qanday admin mavjud emas.")
+    else:
+        admin_text = "\n".join([f"• <code>{admin_id}</code>" for admin_id in adminlar])
+        bot.send_message(message.chat.id, f"👤 <b>Adminlar ro'yxati:</b>\n{admin_text}")
+    user_menu(message)
+
 # 🎬 Kino qo'shish (2GB gacha videolar uchun optimallashtirilgan)
 @bot.message_handler(func=lambda message: message.text == "🎬 Kino qo'shish (2GB gacha)" and is_admin(message.from_user.id))
 def add_movie_start(message):
@@ -521,119 +519,68 @@ def process_movie_content(message, code, name):
             
             bot.send_message(
                 message.chat.id,
-                f"✅ Kino qo'shildi!\n<b>Kod:</b> <code>{code}</code>\n"
-                f"<b>Nomi:</b> {name}\n"
-                f"<b>Hajmi:</b> {video.file_size//(1024*1024)}MB\n"
-                f"<b>Davomiylik:</b> {video.duration} soniya"
+                f"✅ Kino qo'shildi!\n<b>Kod:</b> <code>{code}</code>\n<b>Nomi:</b> {name}\n"
+                f"📹 Video: {video.file_size/1024/1024:.2f}MB"
             )
         
-        data["kinolar"] = kino_dict
         save_data(data)
-        
+        admin_panel(message)
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Xato yuz berdi: {str(e)}")
-    
-    admin_panel(message)
+        bot.send_message(message.chat.id, f"❌ Xato: {str(e)}")
+        admin_panel(message)
 
 # 🗑 Kino o'chirish
 @bot.message_handler(func=lambda message: message.text == "🗑 Kino o'chirish" and is_admin(message.from_user.id))
 def delete_movie_start(message):
     if not kino_dict:
         bot.send_message(message.chat.id, "❌ O'chirish uchun kino mavjud emas.")
-        admin_panel(message)
-        return
+        return admin_panel(message)
     
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    buttons = [types.KeyboardButton(code) for code in kino_dict.keys()]
-    markup.add(*buttons)
-    markup.add(types.KeyboardButton("🔙 Orqaga"))
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for code in kino_dict:
+        markup.add(f"{code} - {kino_dict[code]['nomi']}")
+    markup.add("🔙 Orqaga")
     
     msg = bot.send_message(
         message.chat.id,
         "❌ O'chirish uchun kino kodini tanlang:",
         reply_markup=markup
     )
-    bot.register_next_step_handler(msg, process_movie_delete)
+    bot.register_next_step_handler(msg, process_delete_movie)
 
-def process_movie_delete(message):
+def process_delete_movie(message):
     if message.text == "🔙 Orqaga":
-        admin_panel(message)
-        return
+        return admin_panel(message)
     
-    code = message.text
-    if code in kino_dict:
-        del kino_dict[code]
-        data["kinolar"] = kino_dict
-        save_data(data)
-        bot.send_message(message.chat.id, f"✅ {code} kodli kino o'chirildi!")
-    else:
-        bot.send_message(message.chat.id, "❌ Bunday kodli kino topilmadi.")
+    try:
+        code = message.text.split()[0]
+        if code in kino_dict:
+            del kino_dict[code]
+            save_data(data)
+            bot.send_message(message.chat.id, f"✅ Kino o'chirildi: <code>{code}</code>")
+        else:
+            bot.send_message(message.chat.id, "❌ Bunday kodli kino topilmadi.")
+    except:
+        bot.send_message(message.chat.id, "❌ Noto'g'ri kod kiritildi.")
     
     admin_panel(message)
 
 # 📋 Kinolar ro'yxati
 @bot.message_handler(func=lambda message: message.text == "📋 Kinolar ro'yxati" and is_admin(message.from_user.id))
-def list_movies(message):
+def list_movies_admin(message):
     if not kino_dict:
-        bot.send_message(message.chat.id, "❌ Kinolar ro'yxati bo'sh.")
+        bot.send_message(message.chat.id, "❌ Hozircha kinolar mavjud emas.")
     else:
         movies_list = []
-        for code, info in kino_dict.items():
-            if info['tur'] == 'link':
-                movies_list.append(f"<code>{code}</code>: {info['nomi']} (havola)")
-            else:
-                size = info.get('file_size', 0) // (1024*1024)
-                movies_list.append(f"<code>{code}</code>: {info['nomi']} ({size}MB)")
+        for code, movie in kino_dict.items():
+            movies_list.append(f"• <b>{code}</b> - {movie['nomi']} ({movie['tur']})")
         
         bot.send_message(
             message.chat.id,
-            "📋 <b>Kinolar ro'yxati:</b>\n\n" + "\n".join(movies_list)
+            "🎬 <b>Mavjud kinolar:</b>\n" + "\n".join(movies_list)
         )
     admin_panel(message)
 
-# 👥 Foydalanuvchi menyusi
-@bot.message_handler(func=lambda message: message.text == "👥 Foydalanuvchi menyusi" and is_admin(message.from_user.id))
-def user_menu(message):
-    show_movies(message)
-
-def show_movies(message):
-    if not kino_dict:
-        bot.send_message(message.chat.id, "❌ Hozircha kinolar mavjud emas.")
-
-    
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    buttons = [types.KeyboardButton(code) for code in kino_dict.keys()]
-    markup.add(*buttons)
-    
-    bot.send_message(
-        message.chat.id,
-        "🎬 <b>Kino kodini tanlang:</b>",
-        reply_markup=markup
-    )
-# ... bu yerda kino o'chirish, ro'yxat ko'rsatish va boshqa kodlar tugaydi ...
-
-# 🎬 Foydalanuvchi kino tanlaganda
-@bot.message_handler(func=lambda message: message.text in kino_dict)
-def send_selected_movie(message):
-    code = message.text
-    movie = kino_dict.get(code)
-    
-    if not movie:
-        bot.send_message(message.chat.id, "❌ Kino topilmadi.")
-        return
-
-    if movie["tur"] == "link":
-        bot.send_message(message.chat.id, f"🎬 {movie['nomi']}\n🔗 {movie['havola']}")
-    elif movie["tur"] == "video":
-        bot.send_video(
-            message.chat.id,
-            movie["file_id"],
-            caption=f"🎬 {movie['nomi']}"
-        )
-    else:
-        bot.send_message(message.chat.id, "❌ Noma'lum kino turi.")
-
-# 🟢 Botni ishga tushirish
-if __name__ == "__main__":
-    print("🤖 Bot ishga tushdi...")
-    bot.infinity_polling(timeout=60, long_polling_timeout=60)
+# Botni ishga tushirish
+print("Bot ishga tushdi...")
+bot.infinity_polling()
