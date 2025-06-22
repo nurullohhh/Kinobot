@@ -256,23 +256,22 @@ def manage_channels(message):
 
 # ➕ Kanal qo'shish
 @bot.message_handler(func=lambda message: message.text == "➕ Kanal qo'shish" and is_admin(message.from_user.id))
-def add_channel(message):
-    msg = bot.send_message(
-        message.chat.id, 
-        "📢 Yangi kanal username'ini yuboring (@ belgisi bilan):\n\nMasalan: @yangi_kanal",
-        reply_markup=types.ReplyKeyboardRemove()
-    )
-    bot.register_next_step_handler(msg, process_add_channel)
-
-def process_add_channel(message):
+defdef process_add_channel(message):
     global CHANNELS, data
-    new_channel = message.text.strip().lower()
+    new_channel = message.text.strip()
+
+    # t.me havolasini @username formatiga aylantiramiz
+    if new_channel.startswith("https://t.me/"):
+        new_channel = '@' + new_channel.split('/')[-1]
     
+    # @ belgisi bilan boshlanishi kerak
     if not new_channel.startswith('@'):
-        bot.send_message(message.chat.id, "❌ Kanal username @ belgisi bilan boshlanishi kerak!")
+        bot.send_message(message.chat.id, "❌ Iltimos, kanal username yoki linkini to'g'ri yuboring!")
         manage_channels(message)
         return
-    
+
+    new_channel = new_channel.lower()
+
     if new_channel in CHANNELS:
         bot.send_message(message.chat.id, "❌ Bu kanal allaqachon qo'shilgan!")
         manage_channels(message)
@@ -286,8 +285,8 @@ def process_add_channel(message):
         bot_member = bot.get_chat_member(chat.id, bot.get_me().id)
         if bot_member.status not in ['administrator', 'creator']:
             raise Exception("Bot kanalda admin emas")
-        
-        # Ma'lumotlarni yangilaymiz
+
+        # Qo‘shamiz
         CHANNELS.append(new_channel)
         data["kanal"] = CHANNELS
         save_data(data)
@@ -303,7 +302,8 @@ def process_add_channel(message):
         )
     
     manage_channels(message)
-
+        
+        
 # ➖ Kanal o'chirish
 
 @bot.message_handler(func=lambda message: message.text == "➖ Kanal o'chirish" and is_admin(message.from_user.id))
