@@ -256,7 +256,7 @@ def manage_channels(message):
 
 # ➕ Kanal qo'shish
 @bot.message_handler(func=lambda message: message.text == "➕ Kanal qo'shish" and is_admin(message.from_user.id))
-defdef process_add_channel(message):
+def process_add_channel(message):
     global CHANNELS, data
     new_channel = message.text.strip()
 
