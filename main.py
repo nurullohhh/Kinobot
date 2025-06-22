@@ -535,4 +535,3 @@ def show_movies(message):
     )
 
 # Kino tanlanganda (optimallashtirilgan versiya)
-@bot.message_handle
