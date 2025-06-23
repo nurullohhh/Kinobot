@@ -238,7 +238,7 @@ def forward_to_admin(msg):
             bot.send_message(
                 admin_id,
                 f"📬 Yangi xabar!\n\n"
-                f"👤 Foydalanuvchi: {msg.from_user.first_name} (@{msg.from_user.username or 'noma'lum'})\n"
+                f"👤 Foydalanuvchi: {msg.from_user.first_name} (@{msg.from_user.username or 'nomalum'})\n"
                 f"🆔 ID: {msg.from_user.id}\n\n"
                 f"📝 Xabar: {msg.text}"
             )
