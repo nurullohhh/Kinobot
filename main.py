@@ -10,10 +10,6 @@ bot = telebot.TeleBot(TOKEN)
 bot.remove_webhook()
 keep_alive()
 
-# 🔒 Mandatory subscription settings
-CHANNEL_ID = -1001234567890  # Your channel ID
-CHANNEL_LINK = "https://t.me/YOUR_CHANNEL_USERNAME"  # Your channel link
-CHANNEL_USERNAME = "@YOUR_CHANNEL_USERNAME"  # Your channel username
 
 # 📁 File names
 ADMINS_FILE = "admins.json"
@@ -96,8 +92,6 @@ def is_subscribed(user_id):
         with open(CHANNELS_FILE) as f:
             channels = json.load(f).get("channels", [])
         
-        # Always check the main channel
-        channels.append({"channel_id": CHANNEL_ID, "channel_link": CHANNEL_LINK})
         
         for channel in channels:
             try:
