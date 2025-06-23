@@ -3,6 +3,12 @@ from telebot import types
 import json
 import os
 from keep_alive import keep_alive
+from config import TOKEN
+
+bot = telebot.TeleBot(TOKEN)
+
+# Webhook o‘chirish (muhim)
+bot.remove_webhook()
 
 TOKEN = "7049989741:AAErvfLK23yAR1Jjv33fgS1bqC9y28qvV7M"
 bot = telebot.TeleBot(TOKEN)
