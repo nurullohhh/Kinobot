@@ -2,7 +2,9 @@ import telebot
 from telebot import types
 import json
 import os
+import time
 from datetime import datetime
+from telebot.apihelper import ApiTelegramException
 from keep_alive import keep_alive
 from config import TOKEN
 
@@ -10,6 +12,10 @@ bot = telebot.TeleBot(TOKEN)
 bot.remove_webhook()
 keep_alive()
 
+# 🔒 Mandatory subscription settings
+CHANNEL_ID = -2795712385  # Your channel ID
+CHANNEL_LINK = "https://t.me/neva_uzz"  # Your channel link
+CHANNEL_USERNAME = "@neva_uzz"  # Your channel username
 
 # 📁 File names
 ADMINS_FILE = "admins.json"
@@ -92,6 +98,8 @@ def is_subscribed(user_id):
         with open(CHANNELS_FILE) as f:
             channels = json.load(f).get("channels", [])
         
+        # Always check the main channel
+        channels.append({"channel_id": CHANNEL_ID, "channel_link": CHANNEL_LINK})
         
         for channel in channels:
             try:
@@ -399,8 +407,18 @@ def process_broadcast(msg):
         f"✖️ Xatolik: {failed}"
     )
 
-# (The rest of your admin functions like add/remove admin, channels, etc. would go here)
-# (They would be similar to the previous version but with the new user tracking system)
+# Error handling for polling
+def run_bot():
+    while True:
+        try:
+            print("✅ Bot ishga tushdi...")
+            bot.infinity_polling()
+        except ApiTelegramException as api_error:
+            print(f"Telegram API xatosi: {api_error}")
+            time.sleep(10)
+        except Exception as e:
+            print(f"Kutilmagan xato: {e}")
+            time.sleep(30)
 
-print("✅ Bot ishga tushdi...")
-bot.infinity_polling()
+if __name__ == "__main__":
+    run_bot()
