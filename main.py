@@ -4,7 +4,7 @@ import json
 import os
 from keep_alive import keep_alive
 
-TOKEN = "8063118515:AAFvcV6NmbRH60gLjDyt5lMQKZxOb2AMnko"
+TOKEN = "7049989741:AAErvfLK23yAR1Jjv33fgS1bqC9y28qvV7M"
 bot = telebot.TeleBot(TOKEN)
 keep_alive()
 
