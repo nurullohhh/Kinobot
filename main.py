@@ -6,15 +6,10 @@ from keep_alive import keep_alive
 from config import TOKEN
 
 bot = telebot.TeleBot(TOKEN)
-
-# Webhook o‘chirish (muhim)
 bot.remove_webhook()
-
-TOKEN = "7049989741:AAErvfLK23yAR1Jjv33fgS1bqC9y28qvV7M"
-bot = telebot.TeleBot(TOKEN)
 keep_alive()
 
-# Fayl nomlari
+# 📁 Fayl nomlari
 ADMINS_FILE = "admins.json"
 KINO_FILE = "kino_data.json"
 
@@ -24,26 +19,40 @@ for file in [ADMINS_FILE, KINO_FILE]:
         with open(file, "w") as f:
             json.dump({} if "admin" in file else [], f)
 
+# ✅ Admin panel
+def admin_panel():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("🎬 Kino qo‘shish", "❌ Kino o‘chirish")
+    markup.row("📃 Kinolar ro‘yxati", "📊 Statistika")
+    markup.row("➕ Admin qo‘shish", "➖ Admin o‘chirish")
+    markup.row("👥 Adminlar", "📺 Kanallar")
+    return markup
+
+# 👤 Foydalanuvchi panel
+def user_panel():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("🎞 Kino olish")
+    return markup
+
 # 📌 Admin tekshirish
 def is_admin(user_id):
     with open(ADMINS_FILE) as f:
         admins = json.load(f)
     return str(user_id) in admins
 
-# 🆔 Add admin command (manual)
-@bot.message_handler(commands=["addadmin"])
-def add_admin(msg):
-    if msg.from_user.id == ADMIN_ID:
-        try:
-            uid = msg.text.split()[1]
-            with open(ADMINS_FILE, "r") as f:
-                admins = json.load(f)
-            admins[uid] = "on"
-            with open(ADMINS_FILE, "w") as f:
-                json.dump(admins, f)
-            bot.reply_to(msg, f"✅ Admin qo‘shildi: {uid}")
-        except:
-            bot.reply_to(msg, "❌ Format: /addadmin USER_ID")
+# /start komandasi
+@bot.message_handler(commands=["start"])
+def start(msg):
+    if is_admin(msg.from_user.id):
+        bot.send_message(msg.chat.id, "🔐 Admin paneliga xush kelibsiz!", reply_markup=admin_panel())
+    else:
+        bot.send_message(msg.chat.id, "👋 Salom! Kino botiga xush kelibsiz!", reply_markup=user_panel())
+
+# 🎞 Kino olish tugmasi
+@bot.message_handler(func=lambda m: m.text == "🎞 Kino olish")
+def kino_olish(msg):
+    bot.send_message(msg.chat.id, "🔑 Kino kodini kiriting:")
+    bot.register_next_step_handler(msg, show_kino)
 
 # 🎬 Kino yuklash (faqat admin)
 @bot.message_handler(commands=["upload"])
@@ -114,12 +123,5 @@ def stats(msg):
     views = sum(k["views"] for k in data)
     bot.send_message(msg.chat.id, f"📊 Statistika:\n🎬 Kinolar soni: {total}\n👁 Umumiy ko‘rish: {views}")
 
-# 🆘 Start
-@bot.message_handler(commands=["start"])
-def start(msg):
-    bot.send_message(msg.chat.id, "👋 Salom! Kino ko‘rish uchun /search yozing.")
-
-# 🔄 Doimiy ishlatish
 print("✅ Bot ishga tushdi...")
-bot.remove_webhook()
 bot.infinity_polling()
