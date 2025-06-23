@@ -115,4 +115,5 @@ def start(msg):
 
 # 🔄 Doimiy ishlatish
 print("✅ Bot ishga tushdi...")
+bot.remove_webhook()
 bot.infinity_polling()
