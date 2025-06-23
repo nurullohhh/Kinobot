@@ -21,18 +21,15 @@ CHANNEL_USERNAME = "@neva_uzz"  # Your channel username
 ADMINS_FILE = "admins.json"
 KINO_FILE = "kino_data.json"
 CHANNELS_FILE = "channels.json"
-USERS_FILE = "users.json"
 
 # 📁 Create files if they don't exist
-for file in [ADMINS_FILE, KINO_FILE, CHANNELS_FILE, USERS_FILE]:
+for file in [ADMINS_FILE, KINO_FILE, CHANNELS_FILE]:
     if not os.path.exists(file):
         with open(file, "w") as f:
             if file == ADMINS_FILE:
                 json.dump({"admins": [], "owner": None}, f)
             elif file == CHANNELS_FILE:
                 json.dump({"channels": []}, f)
-            elif file == USERS_FILE:
-                json.dump({"users": {}}, f)
             else:
                 json.dump([], f)
 
@@ -48,7 +45,6 @@ def admin_panel():
     buttons = [
         "🎬 Kino qo'shish", "❌ Kino o'chirish",
         "📃 Kinolar ro'yxati", "📊 Statistika",
-        "👥 Foydalanuvchilar", "📢 Xabar yuborish",
         "➕ Admin qo'shish", "➖ Admin o'chirish",
         "📺 Kanallar", "🔙 Asosiy menyu"
     ]
@@ -60,7 +56,6 @@ def user_panel():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     buttons = [
         "🎞 Kino olish",
-        "📊 Bot statistikasi",
         "📞 Admin bilan bog'lanish"
     ]
     markup.add(*buttons)
@@ -71,26 +66,6 @@ def is_admin(user_id):
     with open(ADMINS_FILE) as f:
         data = json.load(f)
     return str(user_id) in data.get("admins", []) or is_owner(user_id)
-
-# 👤 Register or update user
-def register_user(user):
-    with open(USERS_FILE, "r+") as f:
-        data = json.load(f)
-        user_id = str(user.id)
-        if user_id not in data["users"]:
-            data["users"][user_id] = {
-                "first_name": user.first_name,
-                "last_name": user.last_name or "",
-                "username": user.username or "",
-                "join_date": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                "last_active": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                "movies_watched": 0
-            }
-        else:
-            data["users"][user_id]["last_active"] = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        f.seek(0)
-        json.dump(data, f, indent=2)
-        f.truncate()
 
 # 🔍 Check channel subscription
 def is_subscribed(user_id):
@@ -117,8 +92,6 @@ def is_subscribed(user_id):
 # 🚪 /start command
 @bot.message_handler(commands=["start"])
 def start(msg):
-    register_user(msg.from_user)
-    
     if is_subscribed(msg.from_user.id):
         if is_admin(msg.from_user.id):
             bot.send_message(msg.chat.id, "🔐 Admin paneliga xush kelibsiz!", reply_markup=admin_panel())
@@ -157,8 +130,6 @@ def main_menu(msg):
 # 🎞 Get movie (User function)
 @bot.message_handler(func=lambda m: m.text == "🎞 Kino olish")
 def kino_olish(msg):
-    register_user(msg.from_user)
-    
     if is_subscribed(msg.from_user.id):
         bot.send_message(msg.chat.id, "🔑 Kino kodini kiriting:")
         bot.register_next_step_handler(msg, show_kino)
@@ -170,7 +141,6 @@ def kino_olish(msg):
 
 # 🔍 Show movie by code
 def show_kino(msg):
-    register_user(msg.from_user)
     code = msg.text.strip()
     
     with open(KINO_FILE, "r") as f:
@@ -182,16 +152,6 @@ def show_kino(msg):
             with open(KINO_FILE, "w") as f:
                 json.dump(data, f, indent=2)
             
-            # Update user stats
-            with open(USERS_FILE, "r+") as f:
-                users_data = json.load(f)
-                user_id = str(msg.from_user.id)
-                if user_id in users_data["users"]:
-                    users_data["users"][user_id]["movies_watched"] += 1
-                f.seek(0)
-                json.dump(users_data, f, indent=2)
-                f.truncate()
-            
             bot.send_video(
                 msg.chat.id, 
                 kino["video_id"], 
@@ -201,34 +161,10 @@ def show_kino(msg):
     
     bot.reply_to(msg, "❌ Bunday koddagi kino topilmadi.")
 
-# 📊 Bot statistics (User function)
-@bot.message_handler(func=lambda m: m.text == "📊 Bot statistikasi")
-def user_stats(msg):
-    register_user(msg.from_user)
-    
-    with open(KINO_FILE) as f:
-        movies = json.load(f)
-    
-    with open(USERS_FILE) as f:
-        users = json.load(f)
-    
-    total_movies = len(movies)
-    total_views = sum(m["views"] for m in movies)
-    total_users = len(users["users"])
-    
-    bot.send_message(
-        msg.chat.id,
-        f"📊 Bot statistikasi:\n\n"
-        f"🎬 Jami kinolar: {total_movies}\n"
-        f"👁 Jami ko'rishlar: {total_views}\n"
-        f"👥 Jami foydalanuvchilar: {total_users}"
-    )
-
 # 📞 Contact admin (User function)
 @bot.message_handler(func=lambda m: m.text == "📞 Admin bilan bog'lanish")
 def contact_admin(msg):
-    register_user(msg.from_user)
-    bot.send_message(msg.chat.id, "✍️ Xabaringizni yozib qoldiring va adminlar tez orada siz bilan bog'lanishadi:")
+    bot.send_message(msg.chat.id, "✍️ Xabaringizni yuboring:")
     bot.register_next_step_handler(msg, forward_to_admin)
 
 def forward_to_admin(msg):
@@ -302,110 +238,82 @@ def admin_stats(msg):
         return
     
     with open(KINO_FILE) as f:
-        movies = json.load(f)
-    
-    with open(USERS_FILE) as f:
-        users = json.load(f)
-    
-    total_movies = len(movies)
-    total_views = sum(m["views"] for m in movies)
-    total_users = len(users["users"])
-    
-    # Get active users (last 30 days)
-    active_users = 0
-    for user_id, user_data in users["users"].items():
-        last_active = datetime.strptime(user_data["last_active"], "%Y-%m-%d %H:%M:%S")
-        if (datetime.now() - last_active).days <= 30:
-            active_users += 1
+        data = json.load(f)
+    total = len(data)
+    views = sum(k["views"] for k in data)
     
     bot.send_message(
         msg.chat.id,
-        f"📊 Statistika:\n\n"
-        f"🎬 Jami kinolar: {total_movies}\n"
-        f"👁 Jami ko'rishlar: {total_views}\n"
-        f"👥 Jami foydalanuvchilar: {total_users}\n"
-        f"🟢 Faol foydalanuvchilar (30 kun): {active_users}"
+        f"📊 Statistika:\n"
+        f"🎬 Kinolar soni: {total}\n"
+        f"👁 Umumiy ko'rish: {views}"
     )
 
-# 👥 List users (Admin function)
-@bot.message_handler(func=lambda m: m.text == "👥 Foydalanuvchilar")
-def list_users(msg):
+# 📃 List movies (Admin function)
+@bot.message_handler(func=lambda m: m.text == "📃 Kinolar ro'yxati")
+def list_movies(msg):
     if not is_admin(msg.from_user.id):
         bot.reply_to(msg, "⚠️ Siz admin emassiz!")
         return
     
-    with open(USERS_FILE) as f:
-        users = json.load(f)
+    with open(KINO_FILE) as f:
+        data = json.load(f)
     
-    total_users = len(users["users"])
-    today = datetime.now().strftime("%Y-%m-%d")
-    new_today = sum(1 for u in users["users"].values() if u["join_date"].startswith(today))
-    
-    bot.send_message(
-        msg.chat.id,
-        f"👥 Foydalanuvchilar:\n\n"
-        f"🔢 Jami: {total_users}\n"
-        f"🆕 Bugun qo'shilgan: {new_today}\n\n"
-        f"📊 To'liq ma'lumot olish uchun /users buyrug'ini yuboring"
-    )
-
-@bot.message_handler(commands=["users"])
-def full_users_list(msg):
-    if not is_admin(msg.from_user.id):
+    if not data:
+        bot.reply_to(msg, "ℹ️ Kinolar ro'yxati bo'sh!")
         return
     
-    with open(USERS_FILE) as f:
-        users = json.load(f)
+    response = "🎬 Kinolar ro'yxati:\n\n"
+    for kino in data:
+        response += f"🔑 {kino['code']} - {kino['name']} (👁 {kino['views']})\n"
     
-    response = "👥 Foydalanuvchilar ro'yxati:\n\n"
-    for user_id, user_data in users["users"].items():
-        response += (
-            f"👤 {user_data['first_name']} {user_data['last_name']}\n"
-            f"🆔 ID: {user_id}\n"
-            f"📅 Qo'shilgan: {user_data['join_date']}\n"
-            f"🔄 So'ngi faollik: {user_data['last_active']}\n"
-            f"🎬 Ko'rgan kinolar: {user_data.get('movies_watched', 0)}\n"
-            f"————————————\n"
-        )
-    
-    # Split long messages
-    for x in range(0, len(response), 4000):
-        bot.send_message(msg.chat.id, response[x:x+4000])
+    if len(response) > 4000:
+        for x in range(0, len(response), 4000):
+            bot.send_message(msg.chat.id, response[x:x+4000])
+    else:
+        bot.send_message(msg.chat.id, response)
 
-# 📢 Send broadcast (Admin function)
-@bot.message_handler(func=lambda m: m.text == "📢 Xabar yuborish")
-def broadcast(msg):
+# ❌ Delete movie (Admin function)
+@bot.message_handler(func=lambda m: m.text == "❌ Kino o'chirish")
+def delete_movie(msg):
     if not is_admin(msg.from_user.id):
         bot.reply_to(msg, "⚠️ Siz admin emassiz!")
         return
     
-    bot.send_message(msg.chat.id, "✍️ Hammaga yubormoqchi bo'lgan xabaringizni yuboring:")
-    bot.register_next_step_handler(msg, process_broadcast)
+    with open(KINO_FILE) as f:
+        data = json.load(f)
+    
+    if not data:
+        bot.reply_to(msg, "ℹ️ Kinolar ro'yxati bo'sh!")
+        return
+    
+    markup = types.InlineKeyboardMarkup()
+    for kino in data:
+        markup.add(types.InlineKeyboardButton(
+            f"❌ {kino['code']} - {kino['name']}", 
+            callback_data=f"delete_kino_{kino['code']}"
+        ))
+    
+    bot.send_message(msg.chat.id, "🗑 O'chirish uchun kinoni tanlang:", reply_markup=markup)
 
-def process_broadcast(msg):
-    with open(USERS_FILE) as f:
-        users = json.load(f)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_kino_"))
+def callback_delete_movie(call):
+    code = call.data.split("_")[-1]
+    with open(KINO_FILE, "r+") as f:
+        data = json.load(f)
+        data = [k for k in data if k["code"] != code]
+        f.seek(0)
+        json.dump(data, f, indent=2)
+        f.truncate()
     
-    total = len(users["users"])
-    success = 0
-    failed = 0
-    
-    bot.send_message(msg.chat.id, f"⏳ Xabar {total} ta foydalanuvchiga yuborilmoqda...")
-    
-    for user_id in users["users"]:
-        try:
-            bot.copy_message(user_id, msg.chat.id, msg.message_id)
-            success += 1
-        except Exception as e:
-            print(f"Error sending to {user_id}: {e}")
-            failed += 1
-    
-    bot.send_message(
-        msg.chat.id,
-        f"✅ Xabar yuborildi!\n\n"
-        f"✔️ Muvaffaqiyatli: {success}\n"
-        f"✖️ Xatolik: {failed}"
+    bot.edit_message_text(
+        f"✅ {code} kodli kino o'chirildi!",
+        call.message.chat.id,
+        call.message.message_id
     )
+
+# Admin management functions (similar to previous versions)
+# ... [keep all your existing admin management functions]
 
 # Error handling for polling
 def run_bot():
